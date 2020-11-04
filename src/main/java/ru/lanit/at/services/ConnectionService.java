@@ -57,6 +57,8 @@ public class ConnectionService {
                     }
 
                     connection.setUrl(url);
+                    connection.setSessionID("");
+                    connection.setUuid("");
                     connections.getConnections().put(temp, connection);
                 }
             }

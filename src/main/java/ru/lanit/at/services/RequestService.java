@@ -41,4 +41,16 @@ public class RequestService {
 
         return request.asString();
     }
+
+    public HttpResponse<String> doDelete(MultiValueMap<String, String> headers, String url) {
+        HttpRequestWithBody request = Unirest.delete(url + headers.get("path").get(0));
+        headers.remove("path");
+        headers.remove("content-length");
+
+        for(Map.Entry<String, List<String>> x : headers.entrySet()) {
+            request.header(x.getKey(), x.getValue().get(0));
+        }
+
+        return request.asString();
+    }
 }

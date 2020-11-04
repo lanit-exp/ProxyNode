@@ -35,54 +35,68 @@ public class HubController {
             method = RequestMethod.POST)
     @ApiOperation(value = "Отправка запросов в Winium driver")
     public ResponseEntity<?> manageHub(@RequestHeader MultiValueMap<String, String> headers, @RequestBody(required = false) String body) {
+        String uuid;
+        String driver;
 
-        Optional<List<String>> uuid = Optional.ofNullable(headers.get("uuid"));
-        Optional<List<String>> driver = Optional.ofNullable(headers.get("driver"));
+        if(body != null) {
+            if(body.contains("desiredCapabilities")) {
+                JSONObject jsonObject = new JSONObject(body);
+                JSONObject desiredCapabilities = new JSONObject(jsonObject.get("desiredCapabilities").toString());
 
-        if(!uuid.isPresent()) {
-            return new ResponseEntity<>("UUID для соединения отсутствует!", HttpStatus.BAD_REQUEST);
+                uuid = desiredCapabilities.get("uuid").toString();
+                driver = desiredCapabilities.get("driver").toString();
+            } else {
+                uuid = headers.get("uuid").get(0);
+                driver = headers.get("driver").get(0);
+            }
+        } else {
+            uuid = headers.get("uuid").get(0);
+            driver = headers.get("driver").get(0);
         }
 
         String url = "";
         Optional<Connection> connection;
 
-        if(driver.isPresent()) {
-            connection = setConnection(driver.get().get(0));
+        connection = getConnection(uuid, driver);
+
+        if (!connection.isPresent()) {
+            connection = setConnection(driver);
 
             if(connection.isPresent()) {
-                String connectionUuid = UUID.randomUUID().toString().replace("-", "");
-
-                connection.get().setSessionID(connectionUuid);
-                Connection findingConnection = connection.get();
-
-                findingConnection.setUuid(uuid.get().get(0));
-                url = findingConnection.getUrl();
+                connection.get().setUuid(uuid);
+                connection.get().setSessionID(uuid);
+                url = connection.get().getUrl();
             }
 
         } else {
-            connection = getConnection(uuid.get().get(0));
-
-            if(connection.isPresent()) {
-                url = connection.get().getUrl();
-            }
+            url = connection.get().getUrl();
         }
 
-        HttpResponse<String> response;
+        HttpResponse<String> response = null;
+        Optional<List<String>> method = Optional.ofNullable(headers.get("method"));
 
         try {
-            if(body == null) {
-                response = requestService.doGet(headers, url);
-            } else {
-                response = requestService.doPost(headers, body, url);
+            if(method.isPresent()) {
+                switch (method.get().get(0)) {
+                    case "POST":
+                        response = requestService.doPost(headers, body, url);
+                        break;
+                    case "GET":
+                        response = requestService.doGet(headers, url);
+                        break;
+                    default:
+                        response = requestService.doDelete(headers, url);
+                        break;
+                }
             }
         } catch (Exception e) {
             return new ResponseEntity<>("Ошибка контроллера: \n" + e.toString(), HttpStatus.OK);
         }
 
-        JSONObject jsonObject = new JSONObject(response.getBody());
-        connection.ifPresent(value -> jsonObject.put("sessionId", value.getSessionID()));
+        JSONObject jsonObject1 = new JSONObject(response.getBody());
+        connection.ifPresent(value -> jsonObject1.put("sessionId", value.getSessionID()));
 
-        return new ResponseEntity<>(jsonObject.toString(), HttpStatus.OK);
+        return new ResponseEntity<>(jsonObject1.toString(), HttpStatus.OK);
     }
 
     private Optional<Connection> setConnection(String driver) {
@@ -92,7 +106,7 @@ public class HubController {
             connection = connections.getConnections()
                     .values()
                     .stream()
-                    .filter(element -> element.getDriver().equals(driver))
+                    .filter(element -> element.getDriver().equals(driver) && element.getUuid().equals(""))
                     .findAny();
 
             if(connection.isPresent()) {
@@ -109,10 +123,8 @@ public class HubController {
         return connection;
     }
 
-    @RequestMapping(value = "/connection/close/{uuid}", method = RequestMethod.GET)
-    @ApiOperation(value = "Освобождение драйвера")
-    public void freeDriver(@PathVariable String uuid){
-        Optional<Connection> connection = getConnection(uuid);
+    public void freeDriver(String uuid, String driver){
+        Optional<Connection> connection = getConnection(uuid, driver);
 
         if (connection.isPresent()) {
             connection.get().setUuid("");
@@ -121,11 +133,11 @@ public class HubController {
         }
     }
 
-    private Optional<Connection> getConnection(String uuid) {
+    private Optional<Connection> getConnection(String uuid, String driver) {
         return connections.getConnections()
                 .values()
                 .stream()
-                .filter(element -> element.getUuid().equals(uuid))
+                .filter(element -> element.getUuid().equals(uuid) && element.getDriver().equals(driver))
                 .findFirst();
     }
 }

@@ -1,7 +1,7 @@
 connections:
   - testingOne:
      url: localhost:8888
-     driver: Winium
+     driver: Winium2
   - testingTwo:
       url: localhost:9999
       driver: Winium
