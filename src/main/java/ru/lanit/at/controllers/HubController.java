@@ -39,6 +39,17 @@ public class HubController {
         String driver;
 
         if(body != null) {
+            if(body.contains("changeDriver")) {
+                JSONObject jsonObject = new JSONObject(body);
+                String temp = jsonObject.get("value").toString();
+                temp = temp.replace("changeDriver", "");
+
+                JSONObject value = new JSONObject(temp);
+                String capabilities = value.get("capabilities").toString();
+                body = "{\"desiredCapabilities\":" + capabilities + "}";
+                headers.set("path", "/session");
+            }
+
             if(body.contains("desiredCapabilities")) {
                 JSONObject jsonObject = new JSONObject(body);
                 JSONObject desiredCapabilities = new JSONObject(jsonObject.get("desiredCapabilities").toString());
@@ -72,7 +83,7 @@ public class HubController {
             url = connection.get().getUrl();
         }
 
-        HttpResponse<String> response = null;
+        HttpResponse<String> response;
         Optional<List<String>> method = Optional.ofNullable(headers.get("method"));
 
         try {
@@ -88,6 +99,8 @@ public class HubController {
                         response = requestService.doDelete(headers, url);
                         break;
                 }
+            } else {
+                return new ResponseEntity<>("Отсутствует метод", HttpStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
             return new ResponseEntity<>("Ошибка контроллера: \n" + e.toString(), HttpStatus.OK);
