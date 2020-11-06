@@ -44,7 +44,6 @@ public class HubController {
             if(body.contains("changeDriver")) {
                 JSONObject jsonObject = new JSONObject(body);
                 String temp = jsonObject.get("value").toString();
-                temp = temp.replace("changeDriver", "");
 
                 JSONObject value = new JSONObject(temp);
                 String capabilities = value.get("capabilities").toString();
