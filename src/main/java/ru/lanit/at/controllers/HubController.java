@@ -14,7 +14,9 @@ import ru.lanit.at.components.Connections;
 import ru.lanit.at.elements.Connection;
 import ru.lanit.at.services.RequestService;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @RestController
@@ -88,6 +90,10 @@ public class HubController {
 
         try {
             if(method.isPresent()) {
+                if (method.get().get(0).equals("DELETE")) {
+                    clearInfo(uuid);
+                }
+
                 switch (method.get().get(0)) {
                     case "POST":
                         response = requestService.doPost(headers, body, url);
@@ -100,9 +106,13 @@ public class HubController {
                         break;
                 }
             } else {
-                return new ResponseEntity<>("Отсутствует метод", HttpStatus.BAD_REQUEST);
+                clearInfo(uuid);
+                logger.info("Отсутствует метод у запроса!");
+                return new ResponseEntity<>("Отсутствует метод у запроса!", HttpStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
+            clearInfo(uuid);
+            logger.info("Ошибка контроллера: \n" + e.toString());
             return new ResponseEntity<>("Ошибка контроллера: \n" + e.toString(), HttpStatus.OK);
         }
 
@@ -152,5 +162,15 @@ public class HubController {
                 .stream()
                 .filter(element -> element.getUuid().equals(uuid) && element.getDriver().equals(driver))
                 .findFirst();
+    }
+
+    public void clearInfo(String uuid) {
+        for(Map.Entry<String, Connection> x : connections.getConnections().entrySet()) {
+            String connectionUuid = x.getValue().getUuid();
+            if(connectionUuid.equals(uuid)) {
+                x.getValue().setUuid("");
+                x.getValue().setSessionID("");
+            }
+        }
     }
 }

@@ -42,4 +42,14 @@ public class Connection {
     public void setSessionID(String sessionID) {
         this.sessionID = sessionID;
     }
+
+    @Override
+    public String toString() {
+        return "Connection{" +
+                "url='" + url + '\'' +
+                ", driver='" + driver + '\'' +
+                ", uuid='" + uuid + '\'' +
+                ", sessionID='" + sessionID + '\'' +
+                '}';
+    }
 }
