@@ -31,6 +31,7 @@ verify:jdk8:
       then echo "CI settings missing\! If deploying to GitLab Maven Repository, please see https://docs.gitlab.com/ee/user/project/packages/maven_repository.html#creating-maven-packages-with-gitlab-cicd for instructions.";
       fi
     - 'mvn clean package -s ci_settings.xml'
+    - 'cp hosts.yaml target/hosts.yaml'
 
 maven_build:
   stage: build
@@ -38,6 +39,7 @@ maven_build:
   artifacts:
     paths:
       - target/*.jar
+      - target/*.yaml
   only:
     - master
     - /^Release_\d+\.\d+\.\d+$/

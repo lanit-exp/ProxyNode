@@ -5,6 +5,7 @@ import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 import org.yaml.snakeyaml.Yaml;
@@ -12,9 +13,11 @@ import ru.lanit.at.Application;
 import ru.lanit.at.components.Connections;
 import ru.lanit.at.elements.Connection;
 
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -32,8 +35,10 @@ public class ConnectionService {
         Connection connection;
         Yaml yaml = new Yaml();
 
-        try(InputStream in = ClassLoader.getSystemResourceAsStream("hosts.yaml")) {
+        try(FileInputStream in = new FileInputStream(new File("hosts.yaml"))) {
             Map<String, Object> elements = yaml.load(StreamUtils.copyToString(in, StandardCharsets.UTF_8));
+
+            logger.info("Старт proxy driver с параметрами: " + elements.get("connections").toString());
 
             JSONObject jsonObject = new JSONObject(elements);
             JSONArray jsonArray = new JSONArray(jsonObject.get("connections").toString());
