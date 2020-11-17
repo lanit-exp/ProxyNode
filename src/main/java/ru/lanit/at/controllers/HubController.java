@@ -3,156 +3,278 @@ package ru.lanit.at.controllers;
 import io.swagger.annotations.ApiOperation;
 import kong.unirest.HttpResponse;
 import kong.unirest.json.JSONObject;
+import org.mapstruct.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 import ru.lanit.at.components.Connections;
 import ru.lanit.at.elements.Connection;
+import ru.lanit.at.services.DriverService;
 import ru.lanit.at.services.RequestService;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping(value = "/wd")
 public class HubController {
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private RequestService requestService;
     private Connections connections;
+    private DriverService driverService;
+    private static final String FAKE_RESPONSE = "{\"value\":{\"elementText\":\"element\",\"element-6066-11e4-a52e-4f735466cecf\":\"b90161c1-4579-436c-b131-1a91776c2f31\"}}";
 
     @Autowired
-    public HubController(RequestService requestService, Connections connections) {
+    public HubController(RequestService requestService, Connections connections, DriverService driverService) {
         this.requestService = requestService;
         this.connections = connections;
+        this.driverService = driverService;
     }
 
-    @RequestMapping(value = "/hub",
-            method = RequestMethod.POST)
-    @ApiOperation(value = "Отправка запросов в Winium driver")
-    public ResponseEntity<?> manageHub(@RequestHeader MultiValueMap<String, String> headers, @RequestBody(required = false) String body) {
-        String uuid;
-        String driver;
+    @RequestMapping(value = {"/**"},
+            method = {RequestMethod.POST, RequestMethod.GET, RequestMethod.DELETE})
+    @ApiOperation(value = "Отправка обычного запроса в драйвер")
+    public ResponseEntity<?> sendRequest(@Context HttpServletRequest request) {
+        return resultRequest(request);
+    }
 
-        if(body != null) {
-            if(body.contains("changeDriver")) {
-                JSONObject jsonObject = new JSONObject(body);
-                String temp = jsonObject.get("value").toString();
+    public ResponseEntity<?> resultRequest(HttpServletRequest request) {
+        String body = "";
+        String url = "";
+        String uri = request.getRequestURI();
+        String id = driverService.getUuid();
 
-                JSONObject value = new JSONObject(temp);
-                String capabilities = value.get("capabilities").toString();
-                body = "{\"desiredCapabilities\":" + capabilities + "}";
-                headers.set("path", "/session");
-            }
-
-            if(body.contains("desiredCapabilities")) {
-                JSONObject jsonObject = new JSONObject(body);
-                JSONObject desiredCapabilities = new JSONObject(jsonObject.get("desiredCapabilities").toString());
-
-                uuid = desiredCapabilities.get("uuid").toString();
-                driver = desiredCapabilities.get("driver").toString();
-            } else {
-                uuid = headers.get("uuid").get(0);
-                driver = headers.get("driver").get(0);
-            }
-        } else {
-            uuid = headers.get("uuid").get(0);
-            driver = headers.get("driver").get(0);
+        if(uri.equals("/session")) {
+            return createSession(request);
         }
 
-        String url = "";
-        Optional<Connection> connection;
+        String driver = driverService.getDriver();
 
-        connection = getConnection(uuid, driver);
+        try {
+            if ("POST".equalsIgnoreCase(request.getMethod())) {
+                body = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
 
-        if (!connection.isPresent()) {
-            connection = setConnection(driver);
-
-            if(connection.isPresent()) {
-                connection.get().setUuid(uuid);
-                connection.get().setSessionID(uuid);
-                url = connection.get().getUrl();
+                try {
+                    if (body.contains("changeDriver")) {
+                        return new ResponseEntity<>(changeDriver(body, driverService.getUuid(), request), HttpStatus.OK);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return new ResponseEntity<>("Ошибка контроллера: \n" + e.toString(), HttpStatus.BAD_REQUEST);
+                }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Ошибка контроллера: \n" + e.toString(), HttpStatus.BAD_REQUEST);
+        }
+        Optional<Connection> connection = chooseConnection(id, driver);
 
-        } else {
+        if(connection.isPresent()) {
             url = connection.get().getUrl();
+            uri = uri.replace(connection.get().getUuid(), connection.get().getSessionID());
+        } else {
+            return new ResponseEntity<>("Драйвер отсуствует в списке или занят.", HttpStatus.BAD_REQUEST);
         }
 
         HttpResponse<String> response;
-        Optional<List<String>> method = Optional.ofNullable(headers.get("method"));
+        String method = request.getMethod();
 
         try {
-            if(method.isPresent()) {
-                if (method.get().get(0).equals("DELETE")) {
-                    clearInfo(uuid);
-                }
-
-                switch (method.get().get(0)) {
-                    case "POST":
-                        response = requestService.doPost(headers, body, url);
-                        break;
-                    case "GET":
-                        response = requestService.doGet(headers, url);
-                        break;
-                    default:
-                        response = requestService.doDelete(headers, url);
-                        break;
-                }
-            } else {
-                clearInfo(uuid);
-                logger.info("Отсутствует метод у запроса!");
-                return new ResponseEntity<>("Отсутствует метод у запроса!", HttpStatus.BAD_REQUEST);
-            }
+            response = getResponse(method, request, body, url, uri, id);
         } catch (Exception e) {
-            clearInfo(uuid);
-            logger.info("Ошибка контроллера: \n" + e.toString());
-            return new ResponseEntity<>("Ошибка контроллера: \n" + e.toString(), HttpStatus.OK);
+            clearInfo();
+            e.printStackTrace();
+            return new ResponseEntity<>("Ошибка контроллера: \n" + e.toString(), HttpStatus.BAD_REQUEST);
         }
 
-        JSONObject jsonObject1 = new JSONObject(response.getBody());
-        connection.ifPresent(value -> jsonObject1.put("sessionId", value.getSessionID()));
-
-        return new ResponseEntity<>(jsonObject1.toString(), HttpStatus.OK);
+        if(!response.getBody().isEmpty()) {
+            return new ResponseEntity<>(response.getBody(), HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.OK);
+        }
     }
 
-    private Optional<Connection> setConnection(String driver) {
-        Optional<Connection> connection;
+    public ResponseEntity<?> createSession(@Context HttpServletRequest request) {
+        String body;
+        String sessionId = request.getSession().getId();
+        String driver;
+        String uri = request.getRequestURI();
 
-        while (true) {
-            connection = connections.getConnections()
-                    .values()
-                    .stream()
-                    .filter(element -> element.getDriver().equals(driver) && element.getUuid().equals(""))
-                    .findAny();
+        clearInfo();
+
+        try {
+            body = request.getReader().lines().collect(Collectors.joining(System.lineSeparator()));
+
+            JSONObject jsonObject = new JSONObject(body);
+            JSONObject desiredCapabilities = (JSONObject) jsonObject.get("desiredCapabilities");
+
+            driver = desiredCapabilities.get("driver").toString();
+
+            String url = "";
+            Optional<Connection> connection = chooseConnection(sessionId, driver);
 
             if(connection.isPresent()) {
-                break;
+                url = connection.get().getUrl();
             } else {
-                try {
-                    TimeUnit.SECONDS.sleep(5);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                return new ResponseEntity<>("Драйвер отсуствует в списке или занят.", HttpStatus.BAD_REQUEST);
+            }
+
+            HttpResponse<String> response;
+            String method = request.getMethod();
+
+            response = getResponse(method, request, body, url, uri, "");
+
+            JSONObject responseBody = new JSONObject(response.getBody());
+
+            String id;
+
+            if(responseBody.has("sessionId")) {
+                id = responseBody.get("sessionId").toString();
+            } else {
+                if(responseBody.has("value")) {
+                    JSONObject value = (JSONObject) responseBody.get("value");
+                    id = value.getString("sessionId");
+                } else {
+                    id = UUID.randomUUID().toString().replace("-", "");
                 }
             }
+
+            connection.get().setUuid(id);
+            connection.get().setSessionID(id);
+
+            setParameters(driver, body, id, request);
+
+            logger.info("Старт сессии с параметрами: " + responseBody.toString());
+
+            return new ResponseEntity<>(responseBody.toString(), HttpStatus.OK);
+        } catch (Exception e) {
+            clearInfo();
+            e.printStackTrace();
+            return new ResponseEntity<>("Ошибка контроллера: \n" + e.toString(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    public void setParameters(String driver, String body, String id, HttpServletRequest request) {
+        driverService.setDriver(driver);
+        driverService.setCapabilities(body);
+        driverService.setUuid(id);
+        driverService.setRequest(request);
+        logger.info("Устанавливаем id: " + id + ", драйвер: " + driver);
+    }
+
+    public String changeDriver(String body, String sessionId, HttpServletRequest request) {
+        String url = "";
+        JSONObject json = new JSONObject(body.replace("*[name='", "").replace("']", ""));
+        JSONObject value = new JSONObject(json.get("value").toString());
+
+        String driver;
+        if(value.has("caps")) {
+            JSONObject caps = (JSONObject) value.get("caps");
+            driver = caps.get("changeDriver").toString();
+
+            body = "{\"desiredCapabilities\":" + caps + "}";
+        } else {
+            driver = value.get("changeDriver").toString();
+        }
+
+        Optional<Connection> connection = getConnection(sessionId, driver);
+
+        if(!connection.isPresent()) {
+            connection = setConnection(driver);
+            if(connection.isPresent()) {
+                url = connection.get().getUrl();
+            } else {
+                return "Драйвер отсутствует в списке или занят.";
+            }
+        } else {
+            driverService.setDriver(driver);
+            logger.info("Новый драйвер: " + driver);
+            return FAKE_RESPONSE;
+        }
+
+        String id;
+        String method = request.getMethod();
+        HttpResponse<String> response = getResponse(method, driverService.getRequest(), body, url, "/session", sessionId);
+        JSONObject jsonObject = new JSONObject(response.getBody());
+
+        if(jsonObject.has("sessionId")) {
+            id = jsonObject.get("sessionId").toString();
+        } else {
+            if(jsonObject.has("value")) {
+                JSONObject value1 = (JSONObject) jsonObject.get("value");
+                id = value1.getString("sessionId");
+            } else {
+                id = UUID.randomUUID().toString().replace("-", "");
+            }
+        }
+
+        connection.get().setUuid(sessionId);
+        connection.get().setSessionID(id);
+        driverService.setDriver(driver);
+
+        logger.info("Новый драйвер: " + driver);
+
+        return FAKE_RESPONSE;
+    }
+
+    public HttpResponse<String> getResponse(String method, HttpServletRequest request, String body, String url, String uri, String sessionId) {
+        HttpResponse<String> response;
+
+        if ("DELETE".equalsIgnoreCase(method)) {
+            clearInfo();
+        }
+
+        Map<String, String> headers = new HashMap<>();
+        Enumeration<String> headerNames = request.getHeaderNames();
+
+        if (headerNames != null) {
+            while (headerNames.hasMoreElements()) {
+                String headerName = headerNames.nextElement();
+                headers.put(headerName, request.getHeader(headerName));
+            }
+        }
+
+        switch (method) {
+            case "POST":
+                response = requestService.doPost(headers, body, url, uri);
+                break;
+            case "GET":
+                response = requestService.doGet(headers, url, uri);
+                break;
+            default:
+                response = requestService.doDelete(headers, url, uri);
+                break;
+        }
+
+        return response;
+    }
+
+    public Optional<Connection> chooseConnection (String sessionId, String driver) {
+        Optional<Connection> connection;
+        connection = getConnection(sessionId, driverService.getDriver());
+
+        if(!connection.isPresent()) {
+            connection = setConnection(driver);
         }
 
         return connection;
     }
 
-    public void freeDriver(String uuid, String driver){
-        Optional<Connection> connection = getConnection(uuid, driver);
 
-        if (connection.isPresent()) {
-            connection.get().setUuid("");
-        } else {
-            throw new RuntimeException("UUID отсутствует!");
-        }
+
+    private Optional<Connection> setConnection(String driver) {
+        return connections.getConnections()
+                .values()
+                .stream()
+                .filter(element -> element.getDriver().equals(driver) && element.getUuid().equals(" "))
+                .findAny();
     }
 
     private Optional<Connection> getConnection(String uuid, String driver) {
@@ -163,13 +285,10 @@ public class HubController {
                 .findFirst();
     }
 
-    public void clearInfo(String uuid) {
+    public void clearInfo() {
         for(Map.Entry<String, Connection> x : connections.getConnections().entrySet()) {
-            String connectionUuid = x.getValue().getUuid();
-            if(connectionUuid.equals(uuid)) {
-                x.getValue().setUuid("");
-                x.getValue().setSessionID("");
-            }
+            x.getValue().setUuid(" ");
+            x.getValue().setSessionID(" ");
         }
     }
 }

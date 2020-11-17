@@ -27,7 +27,7 @@ public class ConnectionService {
     public ConnectionService(Connections connections) {
         this.connections = connections;
     }
-    
+
     public void getListConnections() {
         Connection connection;
         Yaml yaml = new Yaml();
@@ -57,8 +57,8 @@ public class ConnectionService {
                     }
 
                     connection.setUrl(url);
-                    connection.setSessionID("");
-                    connection.setUuid("");
+                    connection.setSessionID(" ");
+                    connection.setUuid(" ");
                     connections.getConnections().put(temp, connection);
                 }
             }
