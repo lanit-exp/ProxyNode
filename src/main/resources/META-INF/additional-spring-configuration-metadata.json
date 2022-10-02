@@ -1,0 +1,9 @@
+{
+  "properties": [
+    {
+      "name": "connection.list.file",
+      "type": "java.lang.String",
+      "description": "Description for connection.list.file."
+    }
+  ]
+}

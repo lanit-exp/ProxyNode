@@ -1,2 +1,13 @@
 server:
   port: 8100
+
+connection:
+  list:
+    file: "./hosts.yaml"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+      base-path: "/"

@@ -1,4 +1,4 @@
-package ru.lanit.at.elements;
+package ru.lanit.at.connection;
 
 import org.springframework.stereotype.Component;
 

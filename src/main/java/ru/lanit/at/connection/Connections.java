@@ -1,15 +1,13 @@
-package ru.lanit.at.components;
+package ru.lanit.at.connection;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import ru.lanit.at.elements.Connection;
 
 import java.util.Map;
 
 @Component
 public class Connections {
 
-    private Map<String, Connection> connections;
+    private final Map<String, Connection> connections;
 
     public Connections(Map<String, Connection> connections) {
         this.connections = connections;
