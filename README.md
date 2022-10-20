@@ -28,5 +28,5 @@ connection.default.path - (опционально) путь до драйвер�
 <br/>
 Пример запуска сервиса
 ```shell
-java -Dconnection.list.file=./hosts.yaml -Dconnection.default.url=host:9999 -Dconnection.default.driver=FlaNium -Dconnection.default.isLocal=false -jar ProxyRemoteController-1.0-SNAPSHOT.jar
+java -Dconnection.list.file=./connections.yaml -Dconnection.default.url=localhost:9999 -Dconnection.default.driver=FlaNium -Dconnection.default.isLocal=true connection.default.path=C:\FlaNium.Desktop.Driver-v1.6.0\FlaNium.Driver.exe -jar ProxyRemoteController-1.0-SNAPSHOT.jar
 ```
