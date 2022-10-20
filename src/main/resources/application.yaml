@@ -3,7 +3,7 @@ server:
 
 connection:
   list:
-    file: "./hosts.yaml"
+    file: "./connections.yaml"
   default:
     url: localhost:9999
     driver: FlaNium
