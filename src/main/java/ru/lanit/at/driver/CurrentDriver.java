@@ -1,15 +1,19 @@
-package ru.lanit.at.services;
-
-import org.springframework.stereotype.Service;
+package ru.lanit.at.driver;
 
 import javax.servlet.http.HttpServletRequest;
 
-@Service
-public class DriverService {
+public class CurrentDriver {
     private String driver;
-    private String capabilities;
     private String uuid;
     private HttpServletRequest request;
+
+    public CurrentDriver(String driver, String uuid, HttpServletRequest request) {
+        this.driver = driver;
+        this.uuid = uuid;
+        this.request = request;
+    }
+
+    public CurrentDriver() {}
 
     public String getDriver() {
         return driver;
@@ -17,14 +21,6 @@ public class DriverService {
 
     public void setDriver(String drivers) {
         this.driver = drivers;
-    }
-
-    public void setCapabilities(String value) {
-        this.capabilities = value;
-    }
-
-    public String getCapabilities() {
-        return capabilities;
     }
 
     public String getUuid() {
