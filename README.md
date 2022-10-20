@@ -15,15 +15,15 @@
 
 ## Параметры конфигурации работы драйверов при запуске сервиса
 
-connection.list.file - путь до файла с доп. драйверами
+connection.list.file - путь до файла с доп. драйверами (по умолчанию ./connections.yaml)
 <br/>
-connection.default.url - url драйвера по умолчанию
+connection.default.url - url драйвера по умолчанию (localhost:9999)
 <br/>
-connection.default.driver - имя драйвера по умолчанию
+connection.default.driver - имя драйвера (по умолчанию Flaium)
 <br/>
-connection.default.isLocal - признак локальности драйвера по умолчанию
+connection.default.isLocal - признак локальности драйвера (по умолчанию true)
 <br/>
-connection.default.path - (опционально) путь до драйвера по умолчанию
+connection.default.path - (опционально) путь до драйвера (по умолчанию C:\FlaNium.Desktop.Driver-v1.6.0\FlaNium.Driver.exe)
 <br/>
 <br/>
 Пример запуска сервиса
