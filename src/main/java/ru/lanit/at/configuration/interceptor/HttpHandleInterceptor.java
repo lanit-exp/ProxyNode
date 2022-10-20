@@ -14,6 +14,6 @@ public class HttpHandleInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         log.info("Request URL {}", request.getRequestURL());
-        return true;
+        return !request.getRequestURI().equals("/favicon.ico");
     }
 }

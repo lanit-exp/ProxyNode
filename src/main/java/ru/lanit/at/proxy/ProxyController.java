@@ -50,7 +50,7 @@ public class ProxyController {
                 driver = desiredCapabilities.getString("driver");
 
                 Connection connection = connectionService.getFreeConnection(driver);
-                String url = connection.getUrl();
+                String url = connection.getDriver().getUrl();
 
                 String response = requestService.executeRequest(request.getMethod(), request, body, url, uri);;
                 JSONObject responseBody = new JSONObject(response);

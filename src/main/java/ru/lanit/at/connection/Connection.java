@@ -1,55 +1,18 @@
 package ru.lanit.at.connection;
 
+import lombok.*;
 import org.springframework.stereotype.Component;
+import ru.lanit.at.driver.Driver;
 
 @Component
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+@EqualsAndHashCode
+@ToString
 public class Connection {
-    private String url;
-    private String driver;
     private String uuid;
     private String sessionID;
-
-    public Connection() {}
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public String getDriver() {
-        return driver;
-    }
-
-    public void setDriver(String driver) {
-        this.driver = driver;
-    }
-
-    public String getUuid() {
-        return uuid;
-    }
-
-    public void setUuid(String uuid) {
-        this.uuid = uuid;
-    }
-
-    public String getSessionID() {
-        return sessionID;
-    }
-
-    public void setSessionID(String sessionID) {
-        this.sessionID = sessionID;
-    }
-
-    @Override
-    public String toString() {
-        return "Connection{" +
-                "url='" + url + '\'' +
-                ", driver='" + driver + '\'' +
-                ", uuid='" + uuid + '\'' +
-                ", sessionID='" + sessionID + '\'' +
-                '}';
-    }
+    private Driver driver;
 }

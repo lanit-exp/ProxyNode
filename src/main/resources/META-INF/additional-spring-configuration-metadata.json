@@ -3,7 +3,27 @@
     {
       "name": "connection.list.file",
       "type": "java.lang.String",
-      "description": "Description for connection.list.file."
+      "description": "Path to connections file."
+    },
+    {
+      "name": "connection.default.url",
+      "type": "java.lang.String",
+      "description": "Connection url."
+    },
+    {
+      "name": "connection.default.driver",
+      "type": "java.lang.String",
+      "description": "Driver name."
+    },
+    {
+      "name": "connection.default.isLocal",
+      "type": "java.lang.String",
+      "description": "Check whether driver is local or remote."
+    },
+    {
+      "name": "connection.default.path",
+      "type": "java.lang.String",
+      "description": "Path to driver if it is local."
     }
   ]
 }

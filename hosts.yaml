@@ -3,3 +3,4 @@ connections:
   - connectionOne:
       url: localhost:9999
       driver: FlaNium
+      isLocal: false

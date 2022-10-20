@@ -1,4 +1,4 @@
-package ru.lanit.at.configuration;
+package ru.lanit.at.rest;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;

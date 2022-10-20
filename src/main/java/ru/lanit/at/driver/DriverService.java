@@ -8,9 +8,9 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import ru.lanit.at.rest.RequestService;
 import ru.lanit.at.connection.Connection;
 import ru.lanit.at.connection.ConnectionService;
+import ru.lanit.at.rest.RequestService;
 import ru.lanit.at.util.ResourceUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -58,7 +58,7 @@ public class DriverService {
 
         Connection connection = connectionService.getFreeConnection(driver);
         String responseBody = requestService.executeRequest(request.getMethod(), currentDriver.getRequest(), body,
-                connection.getUrl(), "/session");
+                connection.getDriver().getUrl(), "/session");
         JSONObject jsonObject = new JSONObject(responseBody);
 
         String sessionId;
@@ -116,7 +116,7 @@ public class DriverService {
         Optional<Connection> connection = connectionService.getConnection(currentDriver.getUuid(), currentDriver.getDriver());
 
         if(connection.isPresent()) {
-            url = connection.get().getUrl();
+            url = connection.get().getDriver().getUrl();
             uri = uri.replace(connection.get().getUuid(), connection.get().getSessionID());
         } else {
             return new ResponseEntity<>("Driver not listed or busy.", HttpStatus.INTERNAL_SERVER_ERROR);

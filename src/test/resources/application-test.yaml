@@ -2,13 +2,10 @@ server:
   port: 8100
 
 connection:
-  list:
-    file: "./hosts.yaml"
   default:
     url: localhost:9999
     driver: FlaNium
-    isLocal: true
-    path: C:\FlaNium.Desktop.Driver-v1.6.0\FlaNium.Driver.exe
+    isLocal: false
 
 management:
   endpoints:
