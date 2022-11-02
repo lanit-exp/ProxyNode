@@ -1,17 +1,18 @@
 package ru.lanit.at.connection;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 import org.yaml.snakeyaml.Yaml;
-import ru.lanit.at.Application;
 import ru.lanit.at.driver.Driver;
+import ru.lanit.at.driver.DriverNotFoundException;
 import ru.lanit.at.driver.DriverUtils;
 
 import javax.annotation.PostConstruct;
@@ -19,12 +20,18 @@ import javax.annotation.PreDestroy;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+@Slf4j
 @Service
 public class ConnectionService {
-    private final Logger logger = LoggerFactory.getLogger(Application.class);
+
+    @Getter
+    @Setter
+    private Connection currentConnection;
 
     private final Map<String, Connection> connections;
 
@@ -37,10 +44,10 @@ public class ConnectionService {
     @Value("${connection.default.driver}")
     private String defaultDriver;
 
-    @Value("${connection.default.isLocal}")
+    @Value("${connection.default.isLocal:false}")
     private boolean defaultLocal;
 
-    @Value("${connection.default.path}")
+    @Value("${connection.default.path:}")
     private String driverPath;
 
     @Autowired
@@ -49,37 +56,39 @@ public class ConnectionService {
     }
 
     @PostConstruct
-    public void getConnections() throws IOException {
-        boolean isConnectionFileExist = new File(connectionList).exists();
+    public void prepareConnections() throws IOException {
 
         if (!defaultUrl.startsWith("http://")) {
             defaultUrl = "http://" + defaultUrl;
         }
 
         Driver driver = new Driver(defaultUrl, defaultDriver, defaultLocal, driverPath);
-        Connection connection = new Connection("", "", driver);
+        Connection connection = new Connection("", "", driver, false);
 
         boolean isChecked = checkConnectionDriver(driver);
         if (isChecked) {
             connections.put("default", connection);
         }
 
+        currentConnection = connection;
+
+        boolean isConnectionFileExist = new File(connectionList).exists();
         if (isConnectionFileExist) {
             readListConnections();
         } else {
-            logger.info("There is no connections file");
+            log.info("There is no connections file");
         }
 
         Object[] hosts = connections.values().stream()
                 .map(Connection:: getDriver)
                 .map(Driver::getUrl)
                 .toArray();
-        logger.info("Start proxy driver with hosts: " + Arrays.toString(hosts));
+        log.info("Start proxy controller with hosts: " + Arrays.toString(hosts));
     }
 
     @PreDestroy
     public void stopLocalDrivers() {
-        logger.info("Stop local drivers");
+        log.info("Stop local drivers");
 
         connections.values().forEach(item -> {
             if (item.getDriver().isLocal()) {
@@ -95,12 +104,13 @@ public class ConnectionService {
 
     @Scheduled(cron = "0 0 */3 * * ?")
     public void updateLocalDrivers() {
-        logger.info("Update local drivers");
+        log.info("Update local drivers");
 
         connections.values().forEach(item -> {
             if (item.getDriver().isLocal()) {
                 try {
-                    DriverUtils.restartDriver(item.getDriver().getProcess(), item.getDriver().getDriverPath());
+                    String startParams = item.getDriver().getProcess().contains("FlaNium") ? "-v" : "";
+                    DriverUtils.restartDriver(item.getDriver().getProcess(), item.getDriver().getDriverPath(), startParams);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -150,6 +160,8 @@ public class ConnectionService {
                     boolean isChecked = checkConnectionDriver(newDriver);
                     if (isChecked) {
                         connections.put(name, connection);
+                    } else {
+                        log.info("Something went wrong with {}", newDriver);
                     }
                 }
             }
@@ -168,45 +180,68 @@ public class ConnectionService {
         if (driver.isLocal()) {
             if (driver.getDriverPath() != null) {
                 String[] array = driver.getDriverPath().split("\\\\");
-                driver.setProcess(array[array.length-1]);
+                String process = array[array.length-1];
+                driver.setProcess(process);
 
-                DriverUtils.startDriver(driver.getDriverPath());
+                DriverUtils.startDriver(driver.getDriverPath(), process.contains("FlaNium") ? "-v" : "");
                 return true;
             }
         } else {
-            return true;
+            try {
+                URL url = new URL(driver.getUrl() + "/status");
+                HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
+                urlConn.connect();
+
+                if (urlConn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                    log.error("Connection is not established");
+
+                    urlConn.disconnect();
+                } else {
+                    log.info(String.format("Connection with %s is established", driver.getUrl()));
+                    urlConn.disconnect();
+                    return true;
+                }
+            } catch (IOException e) {
+                log.error("Error creating HTTP connection with {}", driver.getUrl());
+            }
         }
 
         return false;
     }
 
-    public Connection getFreeConnection(String driver) throws Exception {
-        if (checkDriverExisting(driver)) {
-            throw new Exception("Unknown driver");
-        }
+    public void changeConnection(String uuid, String driver) throws Exception {
+        Optional<Connection> connectionOptional = getConnection(driver);
 
-        while (true) {
-            Optional<Connection> optionalConnection = connections
-                    .values()
-                    .stream()
-                    .filter(element -> element.getDriver().getName().equals(driver) && element.getUuid().isEmpty())
-                    .findAny();
+        if (connectionOptional.isPresent()) {
+            Connection connection = connectionOptional.get();
+            connection.setUuid(uuid);
+            connection.setInUse(true);
 
-            if (optionalConnection.isPresent()) {
-                return optionalConnection.get();
-            }
+            currentConnection = connection;
+        } else {
+            throw new DriverNotFoundException("Driver is not found");
         }
     }
 
-    public Optional<Connection> getConnection(String uuid, String driver) throws Exception {
+    public synchronized Optional<Connection> getConnection(String driver) throws Exception {
         if (checkDriverExisting(driver)) {
-            throw new Exception("Unknown driver");
+            throw new DriverNotFoundException("Unknown driver");
+        }
+
+        Optional<Connection> connection = connections
+                .values()
+                .stream()
+                .filter(element -> element.isInUse() && element.getDriver().getName().equals(driver))
+                .findFirst();
+
+        if (connection.isPresent()) {
+            return connection;
         }
 
         return connections
                 .values()
                 .stream()
-                .filter(element -> element.getUuid().equals(uuid) && element.getDriver().getName().equals(driver))
+                .filter(element -> !element.isInUse() && element.getDriver().getName().equals(driver))
                 .findFirst();
     }
 
@@ -219,6 +254,7 @@ public class ConnectionService {
         for(Map.Entry<String, Connection> x : connections.entrySet()) {
             x.getValue().setUuid("");
             x.getValue().setSessionID("");
+            x.getValue().setInUse(false);
         }
     }
 

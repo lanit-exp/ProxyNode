@@ -2,6 +2,8 @@ server:
   port: 8100
 
 connection:
+  list:
+    file: ""
   default:
     url: localhost:9999
     driver: FlaNium

@@ -1,4 +1,4 @@
-package ru.lanit.at.rest;
+package ru.lanit.at.rest.impl;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import ru.lanit.at.rest.RestApiService;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
@@ -14,7 +15,7 @@ import java.util.Enumeration;
 @Slf4j
 @AllArgsConstructor
 @Service
-public class RequestService {
+public class RestApiServiceImpl implements RestApiService {
     private final RestTemplate restTemplate;
 
     public String executeRequest(String method, HttpServletRequest request, String body, String url, String uri) {
