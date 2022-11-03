@@ -172,7 +172,7 @@ public class ConnectionService {
                         address = "http://" + address;
                     }
 
-                    String driverPath = connectionValue.has("driverPath") ? connectionValue.getString("driverPath") : null;
+                    String driverPath = connectionValue.has("path") ? connectionValue.getString("path") : null;
 
                     Driver newDriver = new Driver(address, connectionValue.getString("driver"),
                             connectionValue.getBoolean("isLocal"), driverPath);

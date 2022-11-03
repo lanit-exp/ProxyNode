@@ -4,4 +4,8 @@ connections:
       url: localhost:9999
       driver: FlaNium
       isLocal: true
-      driverPath: C:\FlaNium.Desktop.Driver-v1.6.0\FlaNium.Driver.exe
+      path: C:\FlaNium.Desktop.Driver-v1.6.0\FlaNium.Driver.exe
+  - connectionTwo:
+      url: localhost:9999
+      driver: FlaNium
+      isLocal: false
