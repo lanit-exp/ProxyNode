@@ -10,8 +10,7 @@ public class CommandlineUtils {
      * @param envp - environment properties (can be null)
      * @throws IOException
      */
-    public static void executeCommand(@NotEmpty String command, String[] envp) throws IOException {
-        Runtime runtime = Runtime.getRuntime();
-        runtime.exec(command, envp);
+    public static Process executeCommand(@NotEmpty String command, String[] envp) throws IOException {
+        return Runtime.getRuntime().exec(command, envp);
     }
 }

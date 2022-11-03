@@ -15,4 +15,5 @@ public class Connection {
     private String uuid;
     private String sessionID;
     private Driver driver;
+    private boolean isInUse;
 }
