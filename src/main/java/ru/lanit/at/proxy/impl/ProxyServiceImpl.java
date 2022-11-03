@@ -84,7 +84,6 @@ public class ProxyServiceImpl implements ProxyService {
 
                 return responseBody.toString();
             } catch (Exception e) {
-                connectionService.releaseAllConnections();
                 throw new CreateSessionException(e);
             }
         }
@@ -121,7 +120,6 @@ public class ProxyServiceImpl implements ProxyService {
             }
 
         } catch (Exception e) {
-            connectionService.releaseAllConnections();
             throw new ProxyRestApiResponseException(e);
         }
 

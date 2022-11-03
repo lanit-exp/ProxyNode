@@ -111,7 +111,35 @@ public class ConnectionService {
                 try {
                     String startParams = item.getDriver().getProcess().contains("FlaNium") ? "-v" : "";
                     DriverUtils.restartDriver(item.getDriver().getProcess(), item.getDriver().getDriverPath(), startParams);
-                } catch (IOException e) {
+                    Thread.sleep(1000);
+
+                    boolean isRun = checkRemoteDriver(item.getDriver());
+                    if (isRun) {
+                        log.info("Update is successful for {}", item.getDriver().getProcess());
+                    } else {
+                        short attempts = 5;
+
+                        for (short i = 0; i < attempts; i++) {
+                            log.info("Connection attempt {}", i + 1);
+
+                            DriverUtils.restartDriver(item.getDriver().getProcess(), item.getDriver().getDriverPath(), startParams);
+                            Thread.sleep(1000);
+
+                            isRun = checkRemoteDriver(item.getDriver());
+                            if (isRun) {
+                                log.info("Successful!");
+                                break;
+                            } else {
+                                log.info("Failed to start driver {}", item.getDriver().getProcess());
+                            }
+                        }
+
+                        if (!isRun) {
+                            log.info("Failed connect to driver after {} attempts", attempts);
+                        }
+                    }
+
+                } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
             }
@@ -178,35 +206,46 @@ public class ConnectionService {
      */
     private boolean checkConnectionDriver(Driver driver) throws IOException {
         if (driver.isLocal()) {
-            if (driver.getDriverPath() != null) {
-                String[] array = driver.getDriverPath().split("\\\\");
-                String process = array[array.length-1];
-                driver.setProcess(process);
-
-                DriverUtils.startDriver(driver.getDriverPath(), process.contains("FlaNium") ? "-v" : "");
-                return true;
-            }
+            return startLocalDriver(driver);
         } else {
-            try {
-                URL url = new URL(driver.getUrl() + "/status");
-                HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
-                urlConn.connect();
-
-                if (urlConn.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                    log.error("Connection is not established");
-
-                    urlConn.disconnect();
-                } else {
-                    log.info(String.format("Connection with %s is established", driver.getUrl()));
-                    urlConn.disconnect();
-                    return true;
-                }
-            } catch (IOException e) {
-                log.error("Error creating HTTP connection with {}", driver.getUrl());
-            }
+            return checkRemoteDriver(driver);
         }
+    }
 
-        return false;
+    private boolean startLocalDriver(Driver driver) throws IOException {
+        if (driver.getDriverPath() != null) {
+            String[] array = driver.getDriverPath().split("\\\\");
+            String process = array[array.length-1];
+            driver.setProcess(process);
+
+            DriverUtils.startDriver(driver.getDriverPath(), process.contains("FlaNium") ? "-v" : "");
+            return true;
+        } else {
+            log.info("File path missing {}", driver);
+            return false;
+        }
+    }
+
+    private boolean checkRemoteDriver(Driver driver) {
+        try {
+            URL url = new URL(driver.getUrl() + "/status");
+            HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
+            urlConn.connect();
+
+            if (urlConn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                log.info(String.format("Connection with %s is established", driver.getUrl()));
+                urlConn.disconnect();
+                return true;
+            } else {
+                log.error("Connection is not established");
+
+                urlConn.disconnect();
+                return false;
+            }
+        } catch (IOException e) {
+            log.error("Error creating HTTP connection with {}", driver.getUrl());
+            return false;
+        }
     }
 
     public void changeConnection(String uuid, String driver) throws Exception {
