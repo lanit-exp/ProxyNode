@@ -37,5 +37,6 @@ java -Dconnection.list.file=./hosts.yaml -Dconnection.default.url=host:9999 -Dco
 
 ## API
 
-* ```POST: /rest/api/v1/release-connections``` - высвободить занятые соединения
-* ```POST: /rest/api/v1/timeout/set/{value}``` - задать значение таймаута для соединений (по умолчанию 0)
+* ```POST: /rest/api/v1/release-connections``` - высвободить все занятые соединения
+* ```POST: /rest/api/v1/timeout/set/{value}``` - задать значение таймаута в секундах для освобождения занятого соединения (в случае некорректного завершения работы со стороны фреймворка)
+По умолчанию 3 секунды.
