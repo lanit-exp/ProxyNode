@@ -34,3 +34,8 @@ connections.yaml (формат файла обязательно .yaml), одн�
 ```shell
 java -Dconnection.list.file=./hosts.yaml -Dconnection.default.url=host:9999 -Dconnection.default.driver=FlaNium -Dconnection.default.isLocal=false -jar ProxyRemoteController-1.0-SNAPSHOT.jar
 ```
+
+## API
+
+* ```POST: /rest/api/v1/release-connections``` - высвободить занятые соединения
+* ```POST: /rest/api/v1/timeout/set/{value}``` - задать значение таймаута для соединений (по умолчанию 0)
