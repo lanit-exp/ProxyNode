@@ -28,7 +28,16 @@
 * connection.default.isLocal - признак локальности драйвера (по умолчанию true)
 * connection.default.path - (опционально) путь до драйвера (по умолчанию C:\FlaNium.Desktop.Driver-v1.6.0\FlaNium.Driver.exe)
 
-Пример запуска сервиса
+Примеры запуска сервиса
+```shell
+java -Dconnection.list.file=./hosts.yaml -Dconnection.default.url=host:9999 -Dconnection.default.driver=FlaNium -Dconnection.default.isLocal=false -jar ProxyRemoteController-1.0-SNAPSHOT.jar
+```
 ```shell
 java -Dconnection.list.file=./connections.yaml -Dconnection.default.url=localhost:9999 -Dconnection.default.driver=FlaNium -Dconnection.default.isLocal=true connection.default.path=C:\FlaNium.Desktop.Driver-v1.6.0\FlaNium.Driver.exe -jar ProxyRemoteController-1.0-SNAPSHOT.jar
 ```
+
+## API
+
+* ```POST: /rest/api/v1/release-connections``` - высвободить все занятые соединения
+* ```POST: /rest/api/v1/timeout/set/{value}``` - задать значение таймаута в секундах для освобождения занятого соединения (в случае некорректного завершения работы со стороны фреймворка)
+По умолчанию 3 секунды.
