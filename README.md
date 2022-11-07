@@ -30,7 +30,6 @@
 
 Примеры запуска сервиса
 ```shell
-<<<<<<< README.md
 java -Dconnection.list.file=./hosts.yaml -Dconnection.default.url=host:9999 -Dconnection.default.driver=FlaNium -Dconnection.default.isLocal=false -jar ProxyRemoteController-1.0-SNAPSHOT.jar
 ```
 ```shell
