@@ -5,7 +5,6 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.lanit.at.connection.Connection;
-import ru.lanit.at.connection.ConnectionNotFoundException;
 import ru.lanit.at.connection.ConnectionService;
 import ru.lanit.at.proxy.ProxyService;
 import ru.lanit.at.proxy.exception.proxy.ProxyRequestHandlerException;
@@ -16,7 +15,6 @@ import ru.lanit.at.rest.RestApiService;
 import javax.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -45,15 +43,13 @@ public class ProxyServiceImpl implements ProxyService {
 
                 if (desiredCapabilities.has("driver")) {
                     driver = desiredCapabilities.getString("driver");
+                    Connection currentConnection = connectionService.getCurrentConnection();
 
-                    if (!connectionService.getCurrentConnection().getDriver().getName().equals(driver)) {
-                        Optional<Connection> optionalConnection = connectionService.getConnection(driver);
-
-                        if (!optionalConnection.isPresent()) {
-                            throw new ConnectionNotFoundException("Connection is not found");
-                        }
-
-                        connectionService.setCurrentConnection(optionalConnection.get());
+                    if (!currentConnection.getDriver().getName().equals(driver)) {
+                        Connection optionalConnection = connectionService.getFreeConnection(driver);
+                        connectionService.setCurrentConnection(optionalConnection);
+                    } else {
+                        connectionService.waitConnectionFree(currentConnection);
                     }
                 }
 
@@ -78,7 +74,9 @@ public class ProxyServiceImpl implements ProxyService {
                 }
 
                 connection.setUuid(uuid);
+                connection.setInUse(true);
                 connection.setSessionID(sessionId);
+                connection.setLastActivity(System.currentTimeMillis());
 
                 log.info("Start session with parameters: " + responseBody);
 
@@ -119,6 +117,7 @@ public class ProxyServiceImpl implements ProxyService {
                 responseBody = restApiService.executeRequest(method, request, requestBody, url, uri);
             }
 
+            connection.setLastActivity(System.currentTimeMillis());
         } catch (Exception e) {
             throw new ProxyRestApiResponseException(e);
         }

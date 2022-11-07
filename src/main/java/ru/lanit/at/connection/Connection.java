@@ -16,4 +16,5 @@ public class Connection {
     private String sessionID;
     private Driver driver;
     private boolean isInUse;
+    private long lastActivity;
 }

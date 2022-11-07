@@ -40,7 +40,7 @@ public class ConnectionTest {
     @DisplayName("Check default value of connections list.")
     public void checkDefaultValue() {
         Driver driver = new Driver(defaultUrl, defaultDriver, defaultLocal, driverPath);
-        Connection connection = new Connection("", "", driver, false);
+        Connection connection = new Connection("", "", driver, false, 0L);
         connectionService.setCurrentConnection(connection);
 
         Connection currentConnection = connectionService.getCurrentConnection();
@@ -48,5 +48,6 @@ public class ConnectionTest {
         assertEquals("localhost:9999", currentConnection.getDriver().getUrl());
         assertEquals("FlaNium", currentConnection.getDriver().getName());
         assertFalse(currentConnection.getDriver().isLocal());
+        assertEquals(0, connection.getLastActivity());
     }
 }
