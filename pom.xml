@@ -4,11 +4,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ru.lanit</groupId>
-    <artifactId>ProxyRemoteController</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <name>ProxyRemoteController</name>
-    <description>ProxyRemoteController</description>
+    <groupId>ru.lanit.at</groupId>
+    <artifactId>ProxyNode</artifactId>
+    <version>1.0</version>
+    <name>ProxyNode</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -123,7 +122,7 @@
                 <filtering>true</filtering>
             </testResource>
         </testResources>
-        <finalName>ProxyRemoteController-1.0-SNAPSHOT</finalName>
+        <finalName>${artifactId} v${version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
