@@ -122,7 +122,7 @@
                 <filtering>true</filtering>
             </testResource>
         </testResources>
-        <finalName>${artifactId} v${version}</finalName>
+        <finalName>${artifactId}-v${version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
