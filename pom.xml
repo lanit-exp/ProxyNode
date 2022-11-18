@@ -8,6 +8,7 @@
     <artifactId>ProxyNode</artifactId>
     <version>1.0.0</version>
     <name>ProxyNode</name>
+    <packaging>jar</packaging>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
