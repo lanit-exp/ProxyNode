@@ -1,4 +1,4 @@
-# ProxyDriverController
+# ProxyNode
 
 ## Общее описание
 
