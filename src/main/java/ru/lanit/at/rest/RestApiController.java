@@ -39,4 +39,11 @@ public class RestApiController {
             return new ResponseEntity<>(String.format("Abort operation. The value %s is less than 0.", value), HttpStatus.OK);
         }
     }
+
+    @RequestMapping(value = "/driver/restart", method = RequestMethod.GET)
+    public ResponseEntity<?> restartDrivers() {
+        connectionService.restartLocalDrivers();
+
+        return ResponseEntity.ok("Drivers was updated");
+    }
 }

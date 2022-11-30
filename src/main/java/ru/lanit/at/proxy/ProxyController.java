@@ -44,8 +44,7 @@ public class ProxyController {
         }
     }
 
-    @RequestMapping(value = {"/{sessionId}/change-driver"},
-            method = {RequestMethod.GET})
+    @RequestMapping(value = {"/{sessionId}/change-driver"}, method = {RequestMethod.GET})
     public ResponseEntity<?> changeDriver(@PathVariable String sessionId, @RequestParam(value = "driver") String driver) throws Exception {
         connectionService.changeConnection(sessionId, driver);
         String message = String.format("Set up new driver %s", driver);

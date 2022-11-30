@@ -5,6 +5,8 @@ import ru.lanit.at.driver.DriverNotFoundException;
 import java.util.Optional;
 
 public interface ConnectionService {
+    void restartLocalDrivers();
+
     void changeConnection(String uuid, String driver) throws Exception;
 
     Optional<Connection> getConnection(String driver) throws Exception;
