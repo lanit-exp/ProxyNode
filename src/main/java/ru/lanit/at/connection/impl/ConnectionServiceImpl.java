@@ -106,9 +106,9 @@ public class ConnectionServiceImpl implements ConnectionService {
     }
 
 
-    @Scheduled(cron = "0 0 */3 * * ?")
-    public void updateLocalDrivers() {
-        log.info("Update local drivers");
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void restartLocalDrivers() {
+        log.info("Restart local drivers");
 
         connections.values().forEach(item -> {
             if (item.getDriver().isLocal()) {
@@ -117,7 +117,7 @@ public class ConnectionServiceImpl implements ConnectionService {
                     DriverUtils.restartDriver(item.getDriver().getProcess(), item.getDriver().getDriverPath(), startParams);
                     Thread.sleep(1000);
 
-                    boolean isRun = checkRemoteDriver(item.getDriver());
+                    boolean isRun = checkDriverStatus(item.getDriver());
                     if (isRun) {
                         log.info("Update is successful for {}", item.getDriver().getProcess());
                     } else {
@@ -129,7 +129,7 @@ public class ConnectionServiceImpl implements ConnectionService {
                             DriverUtils.restartDriver(item.getDriver().getProcess(), item.getDriver().getDriverPath(), startParams);
                             Thread.sleep(1000);
 
-                            isRun = checkRemoteDriver(item.getDriver());
+                            isRun = checkDriverStatus(item.getDriver());
                             if (isRun) {
                                 log.info("Successful!");
                                 break;
@@ -213,7 +213,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         if (driver.isLocal()) {
             return startLocalDriver(driver);
         } else {
-            return checkRemoteDriver(driver);
+            return checkDriverStatus(driver);
         }
     }
 
@@ -231,7 +231,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
     }
 
-    private boolean checkRemoteDriver(Driver driver) {
+    private boolean checkDriverStatus(Driver driver) {
         try {
             URL url = new URL(driver.getUrl() + "/status");
             HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();

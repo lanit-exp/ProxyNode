@@ -22,8 +22,7 @@ public class RestApiController {
         this.connectionService = connectionService;
     }
 
-    @RequestMapping(value = {"/release-connections"},
-            method = {RequestMethod.GET})
+    @RequestMapping(value = {"/release-connections"}, method = {RequestMethod.GET})
     public ResponseEntity<?> releaseAllConnections() {
         log.info("Release all connections");
         connectionService.releaseAllConnections();
@@ -39,5 +38,12 @@ public class RestApiController {
         } else {
             return new ResponseEntity<>(String.format("Abort operation. The value %s is less than 0.", value), HttpStatus.OK);
         }
+    }
+
+    @RequestMapping(value = "/driver/restart", method = RequestMethod.GET)
+    public ResponseEntity<?> restartDrivers() {
+        connectionService.restartLocalDrivers();
+
+        return ResponseEntity.ok("Drivers was updated");
     }
 }
