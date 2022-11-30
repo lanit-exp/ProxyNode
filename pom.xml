@@ -6,7 +6,7 @@
 
     <groupId>ru.lanit.at</groupId>
     <artifactId>ProxyNode</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <name>ProxyNode</name>
     <packaging>jar</packaging>
 
