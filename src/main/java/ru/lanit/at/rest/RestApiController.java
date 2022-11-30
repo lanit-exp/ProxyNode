@@ -22,8 +22,7 @@ public class RestApiController {
         this.connectionService = connectionService;
     }
 
-    @RequestMapping(value = {"/release-connections"},
-            method = {RequestMethod.GET})
+    @RequestMapping(value = {"/release-connections"}, method = {RequestMethod.GET})
     public ResponseEntity<?> releaseAllConnections() {
         log.info("Release all connections");
         connectionService.releaseAllConnections();

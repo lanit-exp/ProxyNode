@@ -38,6 +38,7 @@ java -Dconnection.list.file=./connections.yaml -Dconnection.default.url=localhos
 
 ## API
 
+* ```POST: /{sessionId}/change-driver?driver={driverName}``` - изменить текущий драйвер, где driverName - имя нового драйвера, sessionId - id текущей сессии
 * ```POST: /rest/api/v1/release-connections``` - высвободить все занятые соединения
 * ```POST: /rest/api/v1/timeout/set/{value}``` - задать значение таймаута в секундах для освобождения занятого соединения (в случае некорректного завершения работы со стороны фреймворка)
 По умолчанию 3 секунды.
