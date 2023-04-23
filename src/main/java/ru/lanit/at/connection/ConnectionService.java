@@ -2,6 +2,8 @@ package ru.lanit.at.connection;
 
 import ru.lanit.at.driver.DriverNotFoundException;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface ConnectionService {
@@ -24,4 +26,6 @@ public interface ConnectionService {
     void setCurrentConnection(Connection connection);
 
     Connection waitConnectionFree(Connection connection);
+
+    Map<String, Connection> getConnections();
 }

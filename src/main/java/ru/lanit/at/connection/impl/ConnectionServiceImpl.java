@@ -32,11 +32,11 @@ import java.util.*;
 @Slf4j
 @Service
 public class ConnectionServiceImpl implements ConnectionService {
-
     @Getter
     @Setter
     private Connection currentConnection;
 
+    @Getter
     private final Map<String, Connection> connections;
 
     @Value("${connection.list.file}")
@@ -61,7 +61,6 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     @PostConstruct
     public void prepareConnections() throws IOException {
-
         if (!defaultUrl.startsWith("http://")) {
             defaultUrl = "http://" + defaultUrl;
         }
@@ -106,6 +105,7 @@ public class ConnectionServiceImpl implements ConnectionService {
     }
 
 
+    @Override
     @Scheduled(cron = "0 0 0 * * ?")
     public void restartLocalDrivers() {
         log.info("Restart local drivers");
@@ -165,11 +165,8 @@ public class ConnectionServiceImpl implements ConnectionService {
 
                 while (iterator.hasNext()) {
                     String name = iterator.next();
-
                     JSONObject connectionValue = connectionItem.getJSONObject(name);
-
                     Connection connection = new Connection();
-
                     String address = connectionValue.getString("url");
 
                     if(!address.startsWith("http://")) {
@@ -253,6 +250,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
     }
 
+    @Override
     public void changeConnection(String uuid, String driver) throws Exception {
         Optional<Connection> connectionOptional = getConnection(driver);
 
@@ -269,6 +267,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
     }
 
+    @Override
     public Connection waitConnectionFree(Connection connection) {
         while (true) {
             if (checkConnectionFree(connection)) {
@@ -279,6 +278,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
     }
 
+    @Override
     public synchronized Optional<Connection> getConnection(String driver) throws Exception {
         if (checkDriverExisting(driver)) {
             throw new DriverNotFoundException("Unknown driver");
@@ -301,6 +301,7 @@ public class ConnectionServiceImpl implements ConnectionService {
                 .findFirst();
     }
 
+    @Override
     public synchronized Connection getFreeConnection(String driver) throws DriverNotFoundException, ConnectionNotFoundException {
         if (!connections.containsKey(driver)) {
             throw new DriverNotFoundException(String.format("Unknown driver %s", driver));
@@ -331,11 +332,13 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
     }
 
+    @Override
     public boolean checkDriverExisting(String driver) {
         return connections.values().stream()
                 .noneMatch(item -> item.getDriver().getName().equals(driver));
     }
 
+    @Override
     public void releaseAllConnections() {
         for(Map.Entry<String, Connection> x : connections.entrySet()) {
             x.getValue().setUuid("");
@@ -344,6 +347,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
     }
 
+    @Override
     public Connection getConnectionByName(String name) {
         return connections.get(name);
     }

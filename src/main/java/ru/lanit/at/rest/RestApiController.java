@@ -43,7 +43,12 @@ public class RestApiController {
     @RequestMapping(value = "/driver/restart", method = RequestMethod.GET)
     public ResponseEntity<?> restartDrivers() {
         connectionService.restartLocalDrivers();
-
         return ResponseEntity.ok("Drivers was updated");
+    }
+
+    @RequestMapping(value = "/driver/list", method = RequestMethod.GET)
+    public ResponseEntity<?> getDriverList() {
+        log.info("Get driver list");
+        return ResponseEntity.ok(connectionService.getConnections());
     }
 }
