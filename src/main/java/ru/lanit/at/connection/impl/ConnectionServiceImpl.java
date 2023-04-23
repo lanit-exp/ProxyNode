@@ -110,31 +110,31 @@ public class ConnectionServiceImpl implements ConnectionService {
     public void restartLocalDrivers() {
         log.info("Restart local drivers");
 
-        connections.values().forEach(item -> {
-            if (item.getDriver().isLocal()) {
+        connections.values().forEach(connection -> {
+            if (!connection.isInUse() && connection.getDriver().isLocal()) {
                 try {
-                    String startParams = item.getDriver().getProcess().contains("FlaNium") ? "-v" : "";
-                    DriverUtils.restartDriver(item.getDriver().getProcess(), item.getDriver().getDriverPath(), startParams);
+                    String startParams = connection.getDriver().getProcess().contains("FlaNium") ? "-v" : "";
+                    DriverUtils.restartDriver(connection.getDriver().getProcess(), connection.getDriver().getDriverPath(), startParams);
                     Thread.sleep(1000);
 
-                    boolean isRun = checkDriverStatus(item.getDriver());
+                    boolean isRun = checkDriverStatus(connection.getDriver());
                     if (isRun) {
-                        log.info("Update is successful for {}", item.getDriver().getProcess());
+                        log.info("Update is successful for {}", connection.getDriver().getProcess());
                     } else {
                         short attempts = 5;
 
                         for (short i = 0; i < attempts; i++) {
                             log.info("Connection attempt {}", i + 1);
 
-                            DriverUtils.restartDriver(item.getDriver().getProcess(), item.getDriver().getDriverPath(), startParams);
+                            DriverUtils.restartDriver(connection.getDriver().getProcess(), connection.getDriver().getDriverPath(), startParams);
                             Thread.sleep(1000);
 
-                            isRun = checkDriverStatus(item.getDriver());
+                            isRun = checkDriverStatus(connection.getDriver());
                             if (isRun) {
                                 log.info("Successful!");
                                 break;
                             } else {
-                                log.info("Failed to start driver {}", item.getDriver().getProcess());
+                                log.info("Failed to start driver {}", connection.getDriver().getProcess());
                             }
                         }
 
