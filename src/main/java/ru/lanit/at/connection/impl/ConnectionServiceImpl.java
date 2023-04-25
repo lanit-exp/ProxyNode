@@ -32,11 +32,11 @@ import java.util.*;
 @Slf4j
 @Service
 public class ConnectionServiceImpl implements ConnectionService {
-
     @Getter
     @Setter
     private Connection currentConnection;
 
+    @Getter
     private final Map<String, Connection> connections;
 
     @Value("${connection.list.file}")
@@ -61,7 +61,6 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     @PostConstruct
     public void prepareConnections() throws IOException {
-
         if (!defaultUrl.startsWith("http://")) {
             defaultUrl = "http://" + defaultUrl;
         }
@@ -106,35 +105,36 @@ public class ConnectionServiceImpl implements ConnectionService {
     }
 
 
+    @Override
     @Scheduled(cron = "0 0 0 * * ?")
     public void restartLocalDrivers() {
         log.info("Restart local drivers");
 
-        connections.values().forEach(item -> {
-            if (item.getDriver().isLocal()) {
+        connections.values().forEach(connection -> {
+            if (!connection.isInUse() && connection.getDriver().isLocal()) {
                 try {
-                    String startParams = item.getDriver().getProcess().contains("FlaNium") ? "-v" : "";
-                    DriverUtils.restartDriver(item.getDriver().getProcess(), item.getDriver().getDriverPath(), startParams);
+                    String startParams = connection.getDriver().getProcess().contains("FlaNium") ? "-v" : "";
+                    DriverUtils.restartDriver(connection.getDriver().getProcess(), connection.getDriver().getDriverPath(), startParams);
                     Thread.sleep(1000);
 
-                    boolean isRun = checkDriverStatus(item.getDriver());
+                    boolean isRun = checkDriverStatus(connection.getDriver());
                     if (isRun) {
-                        log.info("Update is successful for {}", item.getDriver().getProcess());
+                        log.info("Update is successful for {}", connection.getDriver().getProcess());
                     } else {
                         short attempts = 5;
 
                         for (short i = 0; i < attempts; i++) {
                             log.info("Connection attempt {}", i + 1);
 
-                            DriverUtils.restartDriver(item.getDriver().getProcess(), item.getDriver().getDriverPath(), startParams);
+                            DriverUtils.restartDriver(connection.getDriver().getProcess(), connection.getDriver().getDriverPath(), startParams);
                             Thread.sleep(1000);
 
-                            isRun = checkDriverStatus(item.getDriver());
+                            isRun = checkDriverStatus(connection.getDriver());
                             if (isRun) {
                                 log.info("Successful!");
                                 break;
                             } else {
-                                log.info("Failed to start driver {}", item.getDriver().getProcess());
+                                log.info("Failed to start driver {}", connection.getDriver().getProcess());
                             }
                         }
 
@@ -155,51 +155,56 @@ public class ConnectionServiceImpl implements ConnectionService {
 
         try(FileInputStream in = new FileInputStream(connectionList)) {
             Map<String, Object> elements = yaml.load(StreamUtils.copyToString(in, StandardCharsets.UTF_8));
+            Optional<Map<String, Object>> connectionOptional = Optional.ofNullable(elements);
 
-            JSONObject jsonObject = new JSONObject(elements);
-            JSONArray connectionsArray = (JSONArray) jsonObject.get("connections");
+            if (connectionOptional.isPresent()) {
+                JSONObject jsonObject = new JSONObject(elements);
 
-            for(Object object : connectionsArray) {
-                JSONObject connectionItem = (JSONObject) object;
-                Iterator<String> iterator = connectionItem.keys();
+                if (jsonObject.has("connections")) {
+                    for(Object object : jsonObject.getJSONArray("connections")) {
+                        JSONObject connectionItem = (JSONObject) object;
+                        Iterator<String> iterator = connectionItem.keys();
 
-                while (iterator.hasNext()) {
-                    String name = iterator.next();
+                        while (iterator.hasNext()) {
+                            String name = iterator.next();
+                            JSONObject connectionValue = connectionItem.getJSONObject(name);
+                            Connection connection = new Connection();
+                            String address = connectionValue.getString("url");
 
-                    JSONObject connectionValue = connectionItem.getJSONObject(name);
+                            if(!address.startsWith("http://")) {
+                                address = "http://" + address;
+                            }
 
-                    Connection connection = new Connection();
+                            String driverPath = connectionValue.has("path") ? connectionValue.getString("path") : null;
 
-                    String address = connectionValue.getString("url");
+                            Driver newDriver = new Driver(address, connectionValue.getString("driver"),
+                                    connectionValue.getBoolean("isLocal"), driverPath);
 
-                    if(!address.startsWith("http://")) {
-                        address = "http://" + address;
+                            connection.setDriver(newDriver);
+                            connection.setSessionID("");
+                            connection.setUuid("");
+                            connection.setLastActivity(0L);
+
+                            if (connections.containsKey(name)) {
+                                name += "_" + Math.random() * 1000;
+                            }
+
+                            boolean isChecked = checkConnectionDriver(newDriver);
+                            if (isChecked) {
+                                connections.put(name, connection);
+                            } else {
+                                log.info("Something went wrong with {}", newDriver);
+                            }
+                        }
                     }
 
-                    String driverPath = connectionValue.has("path") ? connectionValue.getString("path") : null;
-
-                    Driver newDriver = new Driver(address, connectionValue.getString("driver"),
-                            connectionValue.getBoolean("isLocal"), driverPath);
-
-                    connection.setDriver(newDriver);
-                    connection.setSessionID("");
-                    connection.setUuid("");
-                    connection.setLastActivity(0L);
-
-                    if (connections.containsKey(name)) {
-                        name += "_" + Math.random() * 1000;
-                    }
-
-                    boolean isChecked = checkConnectionDriver(newDriver);
-                    if (isChecked) {
-                        connections.put(name, connection);
-                    } else {
-                        log.info("Something went wrong with {}", newDriver);
-                    }
+                    connections.remove("connection");
+                } else {
+                    log.warn("There is no connections in the file.");
                 }
+            } else {
+                log.warn("Connections file is empty.");
             }
-
-            connections.remove("connection");
         } catch(Exception ex) {
             ex.printStackTrace();
         }
@@ -253,6 +258,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
     }
 
+    @Override
     public void changeConnection(String uuid, String driver) throws Exception {
         Optional<Connection> connectionOptional = getConnection(driver);
 
@@ -269,6 +275,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
     }
 
+    @Override
     public Connection waitConnectionFree(Connection connection) {
         while (true) {
             if (checkConnectionFree(connection)) {
@@ -279,6 +286,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
     }
 
+    @Override
     public synchronized Optional<Connection> getConnection(String driver) throws Exception {
         if (checkDriverExisting(driver)) {
             throw new DriverNotFoundException("Unknown driver");
@@ -301,6 +309,7 @@ public class ConnectionServiceImpl implements ConnectionService {
                 .findFirst();
     }
 
+    @Override
     public synchronized Connection getFreeConnection(String driver) throws DriverNotFoundException, ConnectionNotFoundException {
         if (!connections.containsKey(driver)) {
             throw new DriverNotFoundException(String.format("Unknown driver %s", driver));
@@ -331,11 +340,13 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
     }
 
+    @Override
     public boolean checkDriverExisting(String driver) {
         return connections.values().stream()
                 .noneMatch(item -> item.getDriver().getName().equals(driver));
     }
 
+    @Override
     public void releaseAllConnections() {
         for(Map.Entry<String, Connection> x : connections.entrySet()) {
             x.getValue().setUuid("");
@@ -344,6 +355,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
     }
 
+    @Override
     public Connection getConnectionByName(String name) {
         return connections.get(name);
     }
