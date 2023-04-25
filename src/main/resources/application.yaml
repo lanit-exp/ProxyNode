@@ -1,7 +1,7 @@
 server:
   port: 8100
   servlet:
-    context-path: /proxy-node
+    context-path: /
   jetty:
     threads:
       acceptors: -1

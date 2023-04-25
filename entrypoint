@@ -1,0 +1,5 @@
+#! /bin/bash
+
+export JAVA_OPT_RANDOM="-Djava.security.edg=file:/dev/./urandom"
+
+java $APP_OPT $APP_XMX_OPT $JAVA_OPT_RANDOM -Dserver.port=$APP_PORT -jar "${APP_NAME}.jar"
