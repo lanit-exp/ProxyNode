@@ -1,14 +1,18 @@
 server:
   port: 8100
+  servlet:
+    context-path: /proxy-node
+  jetty:
+    threads:
+      acceptors: -1
 
 connection:
   list:
     file: "./connections.yaml"
   default:
-    url: localhost:9999
+    url: 192.168.89.17:9999
     driver: FlaNium
-    isLocal: true
-    path: C:\FlaNium.Desktop.Driver-v1.6.0\FlaNium.Driver.exe
+    isLocal: false
 
 management:
   endpoints:
