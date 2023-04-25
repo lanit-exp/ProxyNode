@@ -22,12 +22,13 @@ RUN mvn package
 
 FROM openjdk:8-jdk-alpine
 
-LABEL name="ProxyNode"
-LABEL version="1.0.1"
-
+ARG APP_VERSION="1.0.2"
 ARG APP_PORT=8100
 ARG APP_OPT="-Dfile.encoding=UTF-8"
 ARG APP_XMX_OPT="-XX:MaxRAMPercentage=75.0"
+
+LABEL name="ProxyNode"
+LABEL version=$APP_VERSION
 
 ENV APP_USER app_user
 ENV APP_GROUP app_group
