@@ -155,48 +155,56 @@ public class ConnectionServiceImpl implements ConnectionService {
 
         try(FileInputStream in = new FileInputStream(connectionList)) {
             Map<String, Object> elements = yaml.load(StreamUtils.copyToString(in, StandardCharsets.UTF_8));
+            Optional<Map<String, Object>> connectionOptional = Optional.ofNullable(elements);
 
-            JSONObject jsonObject = new JSONObject(elements);
-            JSONArray connectionsArray = (JSONArray) jsonObject.get("connections");
+            if (connectionOptional.isPresent()) {
+                JSONObject jsonObject = new JSONObject(elements);
 
-            for(Object object : connectionsArray) {
-                JSONObject connectionItem = (JSONObject) object;
-                Iterator<String> iterator = connectionItem.keys();
+                if (jsonObject.has("connections")) {
+                    for(Object object : jsonObject.getJSONArray("connections")) {
+                        JSONObject connectionItem = (JSONObject) object;
+                        Iterator<String> iterator = connectionItem.keys();
 
-                while (iterator.hasNext()) {
-                    String name = iterator.next();
-                    JSONObject connectionValue = connectionItem.getJSONObject(name);
-                    Connection connection = new Connection();
-                    String address = connectionValue.getString("url");
+                        while (iterator.hasNext()) {
+                            String name = iterator.next();
+                            JSONObject connectionValue = connectionItem.getJSONObject(name);
+                            Connection connection = new Connection();
+                            String address = connectionValue.getString("url");
 
-                    if(!address.startsWith("http://")) {
-                        address = "http://" + address;
+                            if(!address.startsWith("http://")) {
+                                address = "http://" + address;
+                            }
+
+                            String driverPath = connectionValue.has("path") ? connectionValue.getString("path") : null;
+
+                            Driver newDriver = new Driver(address, connectionValue.getString("driver"),
+                                    connectionValue.getBoolean("isLocal"), driverPath);
+
+                            connection.setDriver(newDriver);
+                            connection.setSessionID("");
+                            connection.setUuid("");
+                            connection.setLastActivity(0L);
+
+                            if (connections.containsKey(name)) {
+                                name += "_" + Math.random() * 1000;
+                            }
+
+                            boolean isChecked = checkConnectionDriver(newDriver);
+                            if (isChecked) {
+                                connections.put(name, connection);
+                            } else {
+                                log.info("Something went wrong with {}", newDriver);
+                            }
+                        }
                     }
 
-                    String driverPath = connectionValue.has("path") ? connectionValue.getString("path") : null;
-
-                    Driver newDriver = new Driver(address, connectionValue.getString("driver"),
-                            connectionValue.getBoolean("isLocal"), driverPath);
-
-                    connection.setDriver(newDriver);
-                    connection.setSessionID("");
-                    connection.setUuid("");
-                    connection.setLastActivity(0L);
-
-                    if (connections.containsKey(name)) {
-                        name += "_" + Math.random() * 1000;
-                    }
-
-                    boolean isChecked = checkConnectionDriver(newDriver);
-                    if (isChecked) {
-                        connections.put(name, connection);
-                    } else {
-                        log.info("Something went wrong with {}", newDriver);
-                    }
+                    connections.remove("connection");
+                } else {
+                    log.warn("There is no connections in the file.");
                 }
+            } else {
+                log.warn("Connections file is empty.");
             }
-
-            connections.remove("connection");
         } catch(Exception ex) {
             ex.printStackTrace();
         }
