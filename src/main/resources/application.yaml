@@ -10,7 +10,7 @@ connection:
   list:
     file: "./connections.yaml"
   default:
-    url: 192.168.89.17:9999
+    url: 127.0.0.1:9999
     driver: FlaNium
     isLocal: false
 

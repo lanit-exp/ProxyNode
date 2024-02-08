@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpStatusCodeException;
 import ru.lanit.at.connection.ConnectionService;
 import ru.lanit.at.proxy.exception.proxy.ProxyRequestHandlerException;
 import ru.lanit.at.proxy.exception.proxy.ProxyRestApiResponseException;
@@ -35,12 +36,25 @@ public class ProxyController {
     @RequestMapping(value = {"/**"},
             method = {RequestMethod.POST, RequestMethod.GET, RequestMethod.DELETE})
     public ResponseEntity<?> proxyRequest(HttpServletRequest request) throws ProxyRestApiResponseException, ProxyRequestHandlerException {
-        String responseBody = proxyService.proxyRequest(request);
+
+        String responseBody;
+        HttpStatus status = HttpStatus.OK;
+
+        try {
+            responseBody = proxyService.proxyRequest(request);
+
+        } catch (HttpStatusCodeException e) {
+            responseBody = e.getResponseBodyAsString();
+            status = e.getStatusCode();
+
+        } catch (ProxyRestApiResponseException e) {
+            throw new ProxyRestApiResponseException(e);
+        }
 
         if(!responseBody.isEmpty()) {
-            return new ResponseEntity<>(responseBody, HttpStatus.OK);
+            return new ResponseEntity<>(responseBody, status);
         } else {
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(status);
         }
     }
 

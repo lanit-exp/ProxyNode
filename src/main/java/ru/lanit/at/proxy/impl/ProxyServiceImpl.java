@@ -11,6 +11,7 @@ import ru.lanit.at.proxy.exception.proxy.ProxyRequestHandlerException;
 import ru.lanit.at.proxy.exception.proxy.ProxyRestApiResponseException;
 import ru.lanit.at.proxy.exception.session.CreateSessionException;
 import ru.lanit.at.rest.RestApiService;
+import ru.lanit.at.util.JsonUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
@@ -32,17 +33,17 @@ public class ProxyServiceImpl implements ProxyService {
     }
 
     public String startSession(HttpServletRequest request) throws IOException, CreateSessionException {
-        String body;
-        String driver;
+
         String uri = request.getRequestURI();
 
-        try(BufferedReader reader = request.getReader()) {
+        try (BufferedReader reader = request.getReader()) {
             try {
-                body = reader.lines().collect(Collectors.joining(System.lineSeparator()));
-                JSONObject desiredCapabilities = new JSONObject(body).getJSONObject("desiredCapabilities");
+                String body = reader.lines().collect(Collectors.joining(System.lineSeparator()));
 
-                if (desiredCapabilities.has("driver")) {
-                    driver = desiredCapabilities.getString("driver");
+
+                String driver = JsonUtils.getJsonNodeByKey(body, "driver").asText();
+
+                if (!driver.isEmpty()) {
                     Connection currentConnection = connectionService.getCurrentConnection();
 
                     if (!currentConnection.getDriver().getName().equals(driver)) {
@@ -56,16 +57,18 @@ public class ProxyServiceImpl implements ProxyService {
                 Connection connection = connectionService.getCurrentConnection();
                 String url = connection.getDriver().getUrl();
 
-                String response = restApiService.executeRequest(request.getMethod(), request, body, url, uri);;
+                String response = restApiService.executeRequest(request.getMethod(), request, body, url, uri);
+
                 JSONObject responseBody = new JSONObject(response);
 
                 String sessionId;
-                String uuid = !connection.getUuid().equals("") ? connection.getUuid() : UUID.randomUUID().toString();
 
-                if(responseBody.has("sessionId")) {
+                String uuid = !connection.getUuid().isEmpty() ? connection.getUuid() : UUID.randomUUID().toString();
+
+                if (responseBody.has("sessionId")) {
                     sessionId = responseBody.getString("sessionId");
                     responseBody.put("sessionId", uuid);
-                } else if(responseBody.has("value")) {
+                } else if (responseBody.has("value")) {
                     JSONObject value = responseBody.getJSONObject("value");
                     sessionId = value.getString("sessionId");
                     value.put("sessionId", uuid);
@@ -110,17 +113,15 @@ public class ProxyServiceImpl implements ProxyService {
         String responseBody;
         String method = request.getMethod();
 
-        try {
-            if (requestBody.isEmpty()) {
-                responseBody = restApiService.executeRequest(method, request, url, uri);
-            } else {
-                responseBody = restApiService.executeRequest(method, request, requestBody, url, uri);
-            }
 
-            connection.setLastActivity(System.currentTimeMillis());
-        } catch (Exception e) {
-            throw new ProxyRestApiResponseException(e);
+        if (requestBody.isEmpty()) {
+            responseBody = restApiService.executeRequest(method, request, url, uri);
+        } else {
+            responseBody = restApiService.executeRequest(method, request, requestBody, url, uri);
         }
+
+        connection.setLastActivity(System.currentTimeMillis());
+
 
         return responseBody;
     }
