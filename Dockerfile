@@ -1,6 +1,6 @@
 FROM openjdk:8-jdk-alpine as build
 
-ARG MVN_VERSION=3.6.3
+ARG MVN_VERSION=3.9.6
 ARG USER_HOME_DIR="/root"
 ARG BASE_URL=https://apache.osuosl.org/maven/maven-3/${MVN_VERSION}/binaries
 
